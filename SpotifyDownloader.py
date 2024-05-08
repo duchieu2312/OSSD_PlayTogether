@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QFileDialog,QApplication,QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QListWidget,QSlider,QHBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QFileDialog,QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QListWidget, QSlider, QHBoxLayout, QMessageBox
 from PyQt5.QtCore import Qt, QUrl, QTime
 from PyQt5.QtGui import QPixmap, QIcon, QFont
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
@@ -350,18 +350,22 @@ class SpotifyWindow(QMainWindow):
     def download_track(self):
         index = self.track_list_widget.currentRow() 
         track_name, artist_name, preview_url = self.track_infos[index]
-        print(preview_url)
-        if preview_url:
-            response = requests.get(preview_url)
-            if response.status_code == 200:
-                # Lưu nội dung tải về vào file mp3
-                # file_name = f"{track_name} - {artist_name}.mp3"
-                file_path, _ = QFileDialog.getSaveFileName(self, "Chọn nơi lưu file", f"{track_name} - {artist_name}.mp3", "MP3 Files (*.mp3)")
-                if file_path:
-                    with open(file_path, "wb") as f:
-                        f.write(response.content)
-                QMessageBox.information(self, "Thông báo", f"Đã tải bài hát '{track_name}' về máy thành công!")
-            else:
-                QMessageBox.warning(self, "Cảnh báo", f"Không thể tải bài hát '{track_name}' về máy.")
+        search_query = f"{track_name} - {artist_name}"
+        # Sắp xếp định dạng cho YoutubeDL
+        download_dir = QFileDialog.getExistingDirectory(self, "Chọn thư mục để lưu trữ")
+
+        if download_dir:
+            # Nếu người dùng đã chọn thư mục, sử dụng thư mục đó để lưu trữ file
+            with yt_dlp.YoutubeDL({'extract_audio': True, 'format': 'bestaudio', 'outtmpl': download_dir + '/%(title)s.mp3'}) as audio:
+                try:
+                    # Tải bài hát từ YouTube về
+                    Download = audio.extract_info(f"ytsearch:{search_query}", download=True)['entries'][0]
+                    QMessageBox.information(self, "Thông báo", f"Đã tải bài hát '{track_name}' về máy thành công!")
+                except Exception as e:
+                    QMessageBox.warning(self, "Cảnh báo", f"Không thể tải bài hát '{track_name}' về máy: {str(e)}")
         else:
-            QMessageBox.warning(self, "Cảnh báo", "Bài hát không có URL để tải về.")
+            # Người dùng không chọn thư mục, không thực hiện tải về
+            QMessageBox.warning(self, "Cảnh báo", "Bạn chưa chọn thư mục lưu trữ!")
+    def open_manage(self):
+        self.manage_window = ManageSongWindow()
+        self.manage_window.show()
