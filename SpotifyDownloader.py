@@ -1,21 +1,20 @@
-from PyQt5.QtWidgets import QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QListWidget,QSlider,QHBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QFileDialog,QApplication,QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QListWidget,QSlider,QHBoxLayout, QMessageBox
 from PyQt5.QtCore import Qt, QUrl, QTime
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QPixmap, QIcon,QFont
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import spotipy
+import sys
 from spotipy.oauth2 import SpotifyClientCredentials
 import webbrowser
 import requests
+from PyQt5.QtWidgets import QMessageBox
 from io import BytesIO
 
 class SpotifyWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Spotify Downloader")
-        self.resize(800, 600)
-        icon = QIcon()
-        icon.addPixmap(QPixmap("images/Logo.jpg"), QIcon.Normal, QIcon.Off)
-        self.setWindowIcon(icon)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Spotify Music Player")
+        self.setGeometry(100, 100, 600, 600)
 
         # Khởi tạo Spotify client
         client_id = '98825532008844aaa042b6795fb1ab34'
@@ -24,7 +23,6 @@ class SpotifyWindow(QMainWindow):
         self.spotify_client = spotipy.Spotify(client_credentials_manager=self.spotify_client_credentials_manager)
         self.is_repeating = False
         self.is_playing = False
-
         # Khởi tạo media player để phát nhạc
         self.media_player = QMediaPlayer()
 
@@ -36,6 +34,8 @@ class SpotifyWindow(QMainWindow):
         # Khung tìm kiếm
         self.search_label = QLabel("Tìm kiếm:")
         self.search_entry = QLineEdit()
+        self.search_entry.setPlaceholderText("Enter song name....")
+        self.search_entry.textChanged.connect(self.search_tracks)
         self.search_button = QPushButton("Tìm kiếm")
         self.search_button.clicked.connect(self.search_tracks)
 
@@ -47,9 +47,17 @@ class SpotifyWindow(QMainWindow):
         search_widget = QWidget()
         search_widget.setLayout(search_layout)
 
+        # btn download
+        self.btn_down = QPushButton()
+        self.btn_down.hide()
+        self.btn_down.clicked.connect(self.download_track)
+
+
         # Danh sách bài hát
         self.track_list_widget = QListWidget()
         self.track_list_widget.itemClicked.connect(self.play_selected_track)
+        # self.track_list_widget.setStyleSheet("color: white;")
+
 
         # Thanh điều khiển nhạc và thời gian chạy nhạc
         self.horizontal_slider = QSlider(Qt.Horizontal)
@@ -62,40 +70,49 @@ class SpotifyWindow(QMainWindow):
         TimeAndHorizaltal.addWidget(self.horizontal_slider)
         TimeAndHorizaltal.addWidget(self.time_label_end)
 
-        # Nút chuyển đến trang phát nhạc
+
+
+        # handle move to music
         self.moveMusic = QPushButton("Go to music")
         self.moveMusic.clicked.connect(self.go_to_music)
 
-        # Nút chuyển bài trước
+        # handle previous button
         self.previous_button = QPushButton("Previous")
         self.previous_button.clicked.connect(self.previous_track)
 
-        # Nút bấm phát và ngưng
+        # handle play/stop
         self.play_stop_button = QPushButton("Play")
         self.play_stop_button.clicked.connect(self.play_stop_track)
-
-        # Nút chuyển bài sau
+        # btn next music
         self.next_button = QPushButton("Next")
         self.next_button.clicked.connect(self.next_track)
         self.repeat_button = QPushButton("Repeat")
 
-        # Tên bài hát và hình bài hát đang phát
+        #tên bài hát và hình đang phát
+        self.font = QFont()
+        self.font.setPointSize(20)  # Đặt kích thước văn bản là 16
         self.DisplayNameMusic_Label = QLabel()
         self.album_art_label = QLabel()
         self.album_art_label.setFixedSize(200, 200)
 
-        # Gộp tên bài hát và hình đang phát
+        # gộp tên bài hát và hình đang phát
+
         nameAndImage = QHBoxLayout()
         nameAndImage.addWidget(self.album_art_label)
         nameAndImage.addWidget(self.DisplayNameMusic_Label)
+        nameAndImage.addWidget(self.btn_down)
 
-        # Gộp các button nhạc
+        # gộp các button nhạc
+        
         buttons_music = QHBoxLayout()
         buttons_music.addWidget(self.moveMusic)
         buttons_music.addWidget(self.previous_button)
         buttons_music.addWidget(self.play_stop_button)
         buttons_music.addWidget(self.next_button)
         buttons_music.addWidget(self.repeat_button)
+
+
+
 
         # Gộp khung tìm kiếm và danh sách bài hát vào cùng một layout
         main_layout = QVBoxLayout()
@@ -107,20 +124,26 @@ class SpotifyWindow(QMainWindow):
 
         central_widget = QWidget()
         central_widget.setLayout(main_layout)
+        # central_widget.setStyleSheet("background-color: rgba(0,0,0, .5);")
         self.setCentralWidget(central_widget)
         self.media_player.positionChanged.connect(self.update_slider_position)
         self.horizontal_slider.sliderMoved.connect(self.set_media_player_position)
         self.horizontal_slider.sliderReleased.connect(self.check_slider_position)
         self.repeat_button.clicked.connect(self.repeat_music)
 
+
     def search_tracks(self):
         query = self.search_entry.text()
-        results = self.spotify_client.search(q=query, limit=10)
-        self.track_list_widget.clear()  # Xóa danh sách bài hát cũ
-        self.track_infos = [(track['name'], track['artists'][0]['name'], track['preview_url']) for track in results['tracks']['items']]
-        for idx, track_info in enumerate(self.track_infos):
-            track_name, artist_name, _ = track_info
-            self.track_list_widget.addItem(f"{idx+1}. {track_name} - {artist_name}")
+        if query:
+            results = self.spotify_client.search(q=query, limit=10)
+            self.track_list_widget.clear()  # Xóa danh sách bài hát cũ
+            self.track_infos = [(track['name'], track['artists'][0]['name'], track['preview_url']) for track in results['tracks']['items']]
+            for idx, track_info in enumerate(self.track_infos):
+                track_name, artist_name, _ = track_info
+                self.track_list_widget.addItem(f"{idx+1}. {track_name} - {artist_name}")
+        else:                
+            self.track_list_widget.clear()  # Xóa danh sách bài hát cũ
+            self.load_songs("XXXTentacion")
 
     def play_stop_track(self):
         if self.is_playing:  # If music is playing, stop it
@@ -142,6 +165,8 @@ class SpotifyWindow(QMainWindow):
             else:
                 QMessageBox.information(self, "Thông báo", "Bài hát không tồn tại.")
 
+
+
     def play_selected_track(self, item):
         index = self.track_list_widget.currentRow() 
         if index != -1:
@@ -149,25 +174,17 @@ class SpotifyWindow(QMainWindow):
             # print(preview_url)
             if preview_url:
                 self.play_audio_from_url(preview_url)
-                self.DisplayNameMusic_Label.setText(f" {track_name} - {artist_name}")
+                self.DisplayNameMusic_Label.setText(f" {track_name} \n {artist_name}")
+                self.DisplayNameMusic_Label.setFont(self.font)
                 self.setImageMusic(track_name, artist_name)
+                self.btn_down.setText("Download")
+                self.btn_down.show()
                 self.play_stop_button.setText("Stop")  # Đổi nút thành "Stop"
                 self.is_playing = True
             else:
                 QMessageBox.information(self, "Thông báo", "Bài hát không tồn tại.")
 
-    # def play_clicked_button(self):
-    #     index = self.track_list_widget.currentRow()
-    #     if index != -1:
-    #         track_name, artist_name, preview_url = self.track_infos[index]
-    #         if preview_url:
-    #             self.play_audio_from_url(preview_url)
-    #             self.DisplayNameMusic_Label.setText(f" {track_name} - {artist_name}")
-    #             self.setImageMusic(track_name, artist_name)
-    #             self.play_stop_button.setText("Stop")  # Đổi nút thành "Stop"
-    #             self.is_playing = True
-    #         else:
-    #             QMessageBox.information(self, "Thông báo", "Bài hát không tồn tại.")
+
 
     def go_to_music(self, item):
         index = self.track_list_widget.currentRow()
@@ -178,6 +195,7 @@ class SpotifyWindow(QMainWindow):
         else:
             QMessageBox.information(self, "Thông báo", "Không tìm thấy bài hát trên Spotify.")
 
+            
     def play_audio_from_url(self, url):
         response = requests.get(url)
         audio_data = BytesIO(response.content)
@@ -198,7 +216,7 @@ class SpotifyWindow(QMainWindow):
         # Cập nhật giá trị của horizontal_slider khi thời gian phát thay đổi
         current_position = self.media_player.position()
 
-        # Lấy tổng thời lượng của bài hát
+    # Lấy tổng thời lượng của bài hát
         total_duration = self.media_player.duration()
 
         # Chuyển đổi thời gian sang định dạng phút:giây
@@ -214,6 +232,7 @@ class SpotifyWindow(QMainWindow):
             # Tính toán giá trị mới cho horizontal_slider dựa trên thời gian hiện tại và tổng thời lượng
             new_slider_value = int((current_position / total_duration) * self.horizontal_slider.maximum())
             self.horizontal_slider.setValue(new_slider_value)
+
 
     def set_media_player_position(self, position):
         # Lấy giá trị mới của horizontal_slider
@@ -253,6 +272,7 @@ class SpotifyWindow(QMainWindow):
         else:
             QMessageBox.information(self, "Thông báo", "Đã phát hết danh sách bài hát.")
 
+    # lùi bài hát
     def previous_track(self):
         current_index = self.track_list_widget.currentRow()
         if current_index > 0:
@@ -276,6 +296,7 @@ class SpotifyWindow(QMainWindow):
         else:
             QMessageBox.information(self, "Thông báo", "Đã phát hết danh sách bài hát.")
 
+    # hiển thị hình ảnh
     def setImageMusic(self,track_name,artist_name):
     # Truy vấn thông tin chi tiết của bài hát từ Spotify API
         response = self.spotify_client.search(q=f"track:{track_name} artist:{artist_name}", type="track", limit=1)
@@ -294,7 +315,6 @@ class SpotifyWindow(QMainWindow):
                 pixmap = QPixmap()
                 pixmap.loadFromData(image_data)
                 self.album_art_label.setPixmap(pixmap)
-                self.album_art_label.setScaledContents(True)
             else:
                 QMessageBox.information(self, "Thông báo", "Không có ảnh cho bài hát này.")
         else:
@@ -316,6 +336,7 @@ class SpotifyWindow(QMainWindow):
                 # Nếu không, chuyển đến bài tiếp theo
                 self.next_track()
 
+    # Chức năng lặp lại bài hát            
     def repeat_music(self):
         self.is_repeating = not self.is_repeating
         if self.is_repeating:
@@ -330,3 +351,23 @@ class SpotifyWindow(QMainWindow):
             track_url = f"https://open.spotify.com/track/{track_id}"
             return track_url
         return None
+
+    # chức năng download bài hát xuống
+    def download_track(self):
+        index = self.track_list_widget.currentRow() 
+        track_name, artist_name, preview_url = self.track_infos[index]
+        print(preview_url)
+        if preview_url:
+            response = requests.get(preview_url)
+            if response.status_code == 200:
+                # Lưu nội dung tải về vào file mp3
+                # file_name = f"{track_name} - {artist_name}.mp3"
+                file_path, _ = QFileDialog.getSaveFileName(self, "Chọn nơi lưu file", f"{track_name} - {artist_name}.mp3", "MP3 Files (*.mp3)")
+                if file_path:
+                    with open(file_path, "wb") as f:
+                        f.write(response.content)
+                QMessageBox.information(self, "Thông báo", f"Đã tải bài hát '{track_name}' về máy thành công!")
+            else:
+                QMessageBox.warning(self, "Cảnh báo", f"Không thể tải bài hát '{track_name}' về máy.")
+        else:
+            QMessageBox.warning(self, "Cảnh báo", "Bài hát không có URL để tải về.")
