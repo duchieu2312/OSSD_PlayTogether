@@ -103,6 +103,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def open_spotifydownloader(self):
         self.hide()
         self.spotify_window = SpotifyWindow()
+        self.spotify_window.load_songs("XXXTentacion")
         self.spotify_window.show()
 
 if __name__ == "__main__":
