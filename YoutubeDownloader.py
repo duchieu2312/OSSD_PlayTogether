@@ -62,7 +62,6 @@ class YoutubeWindow(QMainWindow):
         self.manage_button = QPushButton("Manage Videos")
         self.manage_button.clicked.connect(self.open_manage)
         self.layout.addWidget(self.manage_button)
-
         
     def load_url(self, url):
         self.webview.load(QUrl(url))
@@ -76,10 +75,6 @@ class YoutubeWindow(QMainWindow):
     def update_url(self, url):
         # Cập nhật thanh URL khi URL trang web thay đổi
         self.url_edit.setText(url.toString())        
- 
-    def open_manage(self):
-        self.manage_window = ManageVideoWindow()
-        self.manage_window.show()
 
     def download_current_video(self):
         current_url = self.webview.url()
@@ -87,11 +82,10 @@ class YoutubeWindow(QMainWindow):
             QMessageBox.warning(self, "Warning", "No video selected!")
             return
         video_url = current_url.toString()
-
         try:
             yt = YouTube(video_url)
-            streams = yt.streams.filter(adaptive=True, file_extension='mp4')
-
+            streams = yt.streams.filter(progressive=True, file_extension='mp4')
+            
             # Trích xuất các độ phân giải có sẵn
             resolutions = [f"{stream.resolution}" for stream in streams if stream.resolution is not None]
 
@@ -107,3 +101,11 @@ class YoutubeWindow(QMainWindow):
             QMessageBox.information(self, "Success", "Video downloaded successfully!")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to download video: {str(e)}")
+
+    def open_manage(self):
+        self.manage_window = ManageVideoWindow()
+        self.manage_window.show()
+
+    def closeEvent(self, event):
+        self.webview.load(QUrl("youtube.com"))
+        self.close()

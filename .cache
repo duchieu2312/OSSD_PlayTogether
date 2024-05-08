@@ -1,5 +1,1 @@
-<<<<<<< HEAD
-{"access_token": "BQBELy8DmVxOzykWSTfA8ehOtndn4FeS1OoojzpqwEGWcPsJuzckUHgdChgDtQJQtXXEJdZl4xLuecKXOEyYH87bmIFSgyc4g3qvYJmfgFoGCgxfQo8", "token_type": "Bearer", "expires_in": 3600, "expires_at": 1715190011}
-=======
-{"access_token": "BQAd0Gwpum5zUDZXdGCSJ_G7b1rZEuQP5dUPumkS5vseXm2BYJf58RFl9bqR6Jfqp0ntuq1UzSpUtWkOrDY-vJl34hktHzSHtaHZUA_rS-Nwzv0Yqu8", "token_type": "Bearer", "expires_in": 3600, "expires_at": 1715172962}
->>>>>>> 896d89d9d0b6e4b502f908cc1261e6e9e97772f4
+{"access_token": "BQC7IAMiSseIX7Kmw9vZX7NjoiCBTDH4anrz_P5x91whdq8hux0czjICE4GI3d8_LuyCTulbHTMs1-UDuk09C3uXEz0h-8AiHpaNA5KPyZ9WU4kIFxA", "token_type": "Bearer", "expires_in": 3600, "expires_at": 1715195423}
