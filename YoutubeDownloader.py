@@ -1,14 +1,14 @@
-from PyQt5.QtWidgets import QMainWindow, QStatusBar, QLineEdit, QPushButton, QWidget, QListWidget, QCheckBox, QListWidgetItem
-from PyQt5.QtCore import QRect
-from PyQt5.QtGui import QPixmap, QIcon
-import pytube
-import webbrowser
-import os
+from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton, QLineEdit, QMessageBox, QInputDialog
+from PyQt5.QtCore import QUrl
+from PyQt5.QtGui import QIcon, QPixmap
+from pytube import YouTube
+from ManageVideo import ManageVideoWindow
 
 class YoutubeWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Youtube Downloader")
+        self.setWindowTitle("YouTube Video Downloader")
         self.resize(800, 600)
         icon = QIcon()
         icon.addPixmap(QPixmap("images/Logo.jpg"), QIcon.Normal, QIcon.Off)
@@ -18,76 +18,92 @@ class YoutubeWindow(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
 
-        #
-        self.centralwidget = QWidget(self)
-
-        #
-        self.Search = QLineEdit(self.centralwidget)
-        self.Search.setGeometry(QRect(30, 30, 491, 20))
-        self.Search.setPlaceholderText("Nhập tiêu đề video")
-
-        #
-        self.listWidget = QListWidget(self.centralwidget)
-        self.listWidget.setGeometry(QRect(30, 60, 741, 481))
-
-
-        self.SearchButton = QPushButton(self.centralwidget)
-        self.SearchButton.setGeometry(QRect(530, 30, 91, 23))
-        self.SearchButton.setText("Tìm kiếm")
-        self.SearchButton.clicked.connect(self.search_videos)
-
-
-        self.checkBox = QCheckBox(self.centralwidget)
-        self.checkBox.setGeometry(QRect(630, 30, 120, 17))
-        self.checkBox.setText("Tải về máy và xem")
-
-
-        self.WatchButton = QPushButton(self.centralwidget)
-        self.WatchButton.setGeometry(QRect(30, 550, 741, 23))
-        self.WatchButton.setText("Xem")
-        self.WatchButton.clicked.connect(self.watch_video)
-
-
-        self.setCentralWidget(self.centralwidget)
-        self.statusbar = QStatusBar(self)
-        self.statusbar.setObjectName("statusbar")
-        self.setStatusBar(self.statusbar)
+        self.layout = QVBoxLayout()
+        self.central_widget.setLayout(self.layout)
         
-    def search_videos(self):
-        search_term = self.Search.text()
-        self.videos = []
-        self.listWidget.clear()
-        for video in pytube.Search(search_term).results:
-            title = video.title
-            views = f"{video.views:,}"
-            publish_date = video.publish_date.strftime("%Y-%m-%d")
-            item = QListWidgetItem(f"{title} - {views} người xem - {publish_date}")
-            self.listWidget.addItem(item)
-            self.videos.append(video)
+        # Thêm widget cho các nút và thanh URL
+        toolbar_layout = QHBoxLayout()
 
+        # Thêm nút "Previous"
+        self.previous_button = QPushButton("Previous")
+        self.previous_button.clicked.connect(self.previous_page)
+        toolbar_layout.addWidget(self.previous_button)
 
-    def watch_video(self):
-        selected_item = self.listWidget.selectedItems()
-        if not selected_item:
-            self.statusbar.showMessage("Please select a video")
+        # Thêm nút "Next"
+        self.next_button = QPushButton("Next")
+        self.next_button.clicked.connect(self.next_page)
+        toolbar_layout.addWidget(self.next_button)
+
+        # Thêm thanh hiện URL
+        self.url_edit = QLineEdit()
+        self.url_edit.setReadOnly(True)  # Đặt chỉ đọc để ngăn người dùng chỉnh sửa URL
+        toolbar_layout.addWidget(self.url_edit)
+
+        # Thêm widget của thanh công cụ vào layout chính
+        self.layout.addLayout(toolbar_layout)
+
+        # Thêm trình duyệt web
+        self.webview = QWebEngineView()
+        self.layout.addWidget(self.webview)
+
+        # Truy cập trực tiếp vào trang chủ YouTube
+        self.webview.setUrl(QUrl("https://www.youtube.com"))
+        self.webview.urlChanged.connect(self.update_url)
+        
+        # Thêm nút tải Video
+        self.download_button = QPushButton("Download Video")
+        self.download_button.clicked.connect(self.download_current_video)
+        self.layout.addWidget(self.download_button)
+        
+        # Thêm nút quản lý Video
+        self.manage_button = QPushButton("Manage Videos")
+        self.manage_button.clicked.connect(self.open_manage)
+        self.layout.addWidget(self.manage_button)
+
+        
+    def load_url(self, url):
+        self.webview.load(QUrl(url))
+    
+    def previous_page(self):
+        self.webview.back()
+
+    def next_page(self):
+        self.webview.forward()
+    
+    def update_url(self, url):
+        # Cập nhật thanh URL khi URL trang web thay đổi
+        self.url_edit.setText(url.toString())        
+ 
+    def open_manage(self):
+        self.manage_window = ManageVideoWindow()
+        self.manage_window.show()
+
+    def download_current_video(self):
+        current_url = self.webview.url()
+        if current_url.isEmpty() or "watch?" not in current_url.toString():
+            QMessageBox.warning(self, "Warning", "No video selected!")
             return
-        selected_video_index = self.listWidget.currentRow()
-        video = self.videos[selected_video_index]
-        if self.checkBox.isChecked():
-            try:
-                downloaded_file = video.streams.first().download()
-                if os.name == "nt":
-                    try:
-                        os.startfile(downloaded_file)
-                        self.statusbar.showMessage("Video downloaded and opened")
-                    except Exception as e:
-                        print(f"Error opening video in Windows Media Player: {e}")
-                        self.statusbar.showMessage("Error opening video")
-                else:
-                    self.statusbar.showMessage("Windows Media Player integration not available on this system.")
-            except Exception as e:
-                print(f"Error downloading video: {e}")
-                self.statusbar.showMessage("Error downloading video")
-        else:
-            webbrowser.open(video.watch_url, new=0, autoraise=True)
+        video_url = current_url.toString()
+
+        try:
+            yt = YouTube(video_url)
+            streams = yt.streams.filter(adaptive=True, file_extension='mp4')
+
+            # Trích xuất các độ phân giải có sẵn
+            resolutions = [f"{stream.resolution}" for stream in streams if stream.resolution is not None]
+
+            # Hiển thị hộp thoại lựa chọn độ phân giải
+            resolution, ok = QInputDialog.getItem(self, "Select Resolution", "Choose resolution:", resolutions, 0, False)
+            if not ok: return
+
+            # Tìm luồng đã chọn
+            selected_stream = next(stream for stream in streams if  f"{stream.resolution}" == resolution)
+            
+            # Tải xuống luồng đã chọn
+            selected_stream.download()
+            QMessageBox.information(self, "Success", "Video downloaded successfully!")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to download video: {str(e)}")
