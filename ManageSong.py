@@ -10,7 +10,7 @@ class MP3AndFoldersProxyModel(QSortFilterProxyModel):
         source_index = self.sourceModel().index(source_row, 0, source_parent)
         file_name = self.sourceModel().fileName(source_index)
         if file_name.endswith(".mp3") or self.sourceModel().isDir(source_index):
-            return super().filterAcceptsRow(source_row, source_parent)  # Hiển thị các tệp MP4 và thư mục
+            return super().filterAcceptsRow(source_row, source_parent)  # Hiển thị các tệp MP3 và thư mục
         else:
             return False
 
@@ -74,7 +74,7 @@ class ManageSongWindow(QMainWindow):
         self.move_file_button.clicked.connect(self.move_file_dialog)
         layout.addWidget(self.move_file_button)
 
-        # Mở file mp4
+        # Mở file mp3
         self.tree_view.doubleClicked.connect(self.open_file)
 
 
@@ -113,7 +113,7 @@ class ManageSongWindow(QMainWindow):
         source_index = self.proxy_model.mapToSource(index)
         file_path = self.model.filePath(source_index)
         file_extension = os.path.splitext(file_path)[1].lower()
-        if file_extension in ['.mp3', '.mp4', '.avi', '.mkv', '.flv']:
+        if file_extension in ['.mp3']:
             try:
                 if sys.platform.startswith('win'):
                     os.startfile(file_path)

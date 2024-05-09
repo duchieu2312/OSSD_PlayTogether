@@ -113,7 +113,7 @@ class ManageVideoWindow(QMainWindow):
         source_index = self.proxy_model.mapToSource(index)
         file_path = self.model.filePath(source_index)
         file_extension = os.path.splitext(file_path)[1].lower()
-        if file_extension in ['.mp3', '.mp4', '.avi', '.mkv', '.flv']:
+        if file_extension in ['.mp4', '.avi', '.mkv', '.flv']:
             try:
                 if sys.platform.startswith('win'):
                     os.startfile(file_path)

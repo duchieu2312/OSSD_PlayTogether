@@ -1,14 +1,14 @@
-from PyQt5.QtWidgets import QFileDialog,QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QListWidget, QSlider, QHBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QFileDialog,QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget, QListWidget, QSlider, QHBoxLayout, QMessageBox, QInputDialog
 from PyQt5.QtCore import Qt, QUrl, QTime
 from PyQt5.QtGui import QPixmap, QIcon, QFont
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
-import yt_dlp
+from pytube import Search
+from ManageSong import ManageSongWindow
 import webbrowser
 import requests
-from io import BytesIO
-from ManageSong import ManageSongWindow
+import os
 
 class SpotifyWindow(QMainWindow):
     def __init__(self):
@@ -36,7 +36,7 @@ class SpotifyWindow(QMainWindow):
     def init_ui(self):
         
         # Khung tìm kiếm
-        self.search_label = QLabel("Tìm kiếm:")
+        self.search_label = QLabel("Search:")
         self.search_entry = QLineEdit()
         self.search_entry.setPlaceholderText("Enter song name....")
         self.search_entry.textChanged.connect(self.search_tracks)
@@ -162,7 +162,7 @@ class SpotifyWindow(QMainWindow):
                 self.play_stop_button.setText("Stop")  # Đổi nút thành "Stop"
                 self.is_playing = True
             else:
-                QMessageBox.information(self, "Thông báo", "Bài hát không tồn tại.")
+                QMessageBox.information(self, "Information", "The song does not exist.")
 
     def play_selected_track(self):
         index = self.track_list_widget.currentRow() 
@@ -180,7 +180,7 @@ class SpotifyWindow(QMainWindow):
                 self.play_stop_button.setText("Stop")  # Đổi nút thành "Stop"
                 self.is_playing = True
             else:
-                QMessageBox.information(self, "Thông báo", "Bài hát không tồn tại.")
+                QMessageBox.information(self, "Information", "The song does not exist.")
 
     def go_to_music(self):
         index = self.track_list_widget.currentRow()
@@ -189,7 +189,7 @@ class SpotifyWindow(QMainWindow):
         if track_url:
             webbrowser.open(track_url)
         else:
-            QMessageBox.information(self, "Thông báo", "Không tìm thấy bài hát trên Spotify.")
+            QMessageBox.information(self, "Information", "The song is not found on Spotify.")
 
     def play_audio_from_url(self, url):
         self.media_player.setMedia(QMediaContent(QUrl(url)))
@@ -263,7 +263,7 @@ class SpotifyWindow(QMainWindow):
                     track_name, artist_name, preview_url = next_track_info
             
         else:
-            QMessageBox.information(self, "Thông báo", "Đã phát hết danh sách bài hát.")
+            QMessageBox.information(self, "Information", "No more songs available.")
 
     # lùi bài hát
     def previous_track(self):
@@ -287,7 +287,7 @@ class SpotifyWindow(QMainWindow):
                     previous_track_info = self.track_infos[previous_index]
                     track_name, artist_name, preview_url = previous_track_info
         else:
-            QMessageBox.information(self, "Thông báo", "Đã phát hết danh sách bài hát.")
+            QMessageBox.information(self, "Information", "No more songs available.")
 
     # hiển thị hình ảnh
     def setImageMusic(self,track_name,artist_name):
@@ -310,9 +310,9 @@ class SpotifyWindow(QMainWindow):
                 self.album_art_label.setPixmap(pixmap)
                 self.album_art_label.setScaledContents(True)
             else:
-                QMessageBox.information(self, "Thông báo", "Không có ảnh cho bài hát này.")
+                QMessageBox.information(self, "Information", "There is no image for this song.")
         else:
-            QMessageBox.information(self, "Thông báo", "Không tìm thấy thông tin chi tiết của bài hát.")
+            QMessageBox.information(self, "Information", "No detailed information found for this song.")
     
     # chuyển qua bài tiếp theo khi thanh phát nhạc chạy hết
     def check_slider_position(self):
@@ -348,24 +348,51 @@ class SpotifyWindow(QMainWindow):
 
     # Chức năng download bài hát xuống
     def download_track(self):
-        index = self.track_list_widget.currentRow() 
+        index = self.track_list_widget.currentRow()
         track_name, artist_name, preview_url = self.track_infos[index]
         search_query = f"{track_name} - {artist_name}"
-        # Sắp xếp định dạng cho YoutubeDL
-        download_dir = QFileDialog.getExistingDirectory(self, "Chọn thư mục để lưu trữ")
 
+        # Chọn vị trí thư mục tải xuống
+        download_dir = QFileDialog.getExistingDirectory(self, "Selecte directory to save file")
+
+        # Nếu người dùng đã chọn thư mục, thư mục sẽ được sử dụng để lưu trữ file
         if download_dir:
-            # Nếu người dùng đã chọn thư mục, sử dụng thư mục đó để lưu trữ file
-            with yt_dlp.YoutubeDL({'extract_audio': True, 'format': 'bestaudio', 'outtmpl': download_dir + '/%(title)s.mp3'}) as audio:
                 try:
-                    # Tải bài hát từ YouTube về
-                    Download = audio.extract_info(f"ytsearch:{search_query}", download=True)['entries'][0]
-                    QMessageBox.information(self, "Thông báo", f"Đã tải bài hát '{track_name}' về máy thành công!")
+                    # Tìm kiếm bài hát trên youtube và lấy video đầu tiên
+                    search_results = Search(search_query)
+                    first_video = search_results.results[0]
+
+                    # Chỉ lấy những luồng chỉ có âm thanh
+                    streams = first_video.streams.filter(only_audio=True)
+
+                    # Trích xuất chỉ số bitrate của mỗi luồng
+                    bitrates = [f"{stream.abr}" for stream in streams]
+
+                    # Hiển thị hộp thoại lựa chọn bitrate
+                    bitrates, ok = QInputDialog.getItem(self, "Bitrate", "Choose bitrate:", bitrates, 0, False)
+                    if not ok: return
+
+                    # Tìm luồng đã chọn
+                    selected_stream = next(stream for stream in streams if  f"{stream.abr}" == bitrates)
+
+                    # Tải về luồng đã chọn
+                    out_file = selected_stream.download(output_path=download_dir)
+
+                    # Thay đổi định dạng từ mp4 thành mp3
+                    base, _ = os.path.splitext(out_file)
+                    new_file = base + '.mp3'
+                    os.rename(out_file, new_file)
+                    QMessageBox.information(self, "Information", f"'{track_name}' by '{artist_name}' has been successfully downloaded to your device!")
                 except Exception as e:
-                    QMessageBox.warning(self, "Cảnh báo", f"Không thể tải bài hát '{track_name}' về máy: {str(e)}")
+                    QMessageBox.warning(self, "Warning", f"Unable to download '{track_name}' by '{artist_name}': {str(e)}")
         else:
             # Người dùng không chọn thư mục, không thực hiện tải về
-            QMessageBox.warning(self, "Cảnh báo", "Bạn chưa chọn thư mục lưu trữ!")
+            QMessageBox.warning(self, "Warning", "You haven't selected a download directory!")
+
     def open_manage(self):
         self.manage_window = ManageSongWindow()
         self.manage_window.show()
+
+    def closeEvent(self, event):
+        self.media_player.stop()
+        self.close()
