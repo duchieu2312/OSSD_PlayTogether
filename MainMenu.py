@@ -103,15 +103,8 @@ class MainWindow(QMainWindow):
 
     def open_spotifydownloader(self):
         self.spotify_window = SpotifyWindow()
-        self.spotify_window.load_songs("XXXTentacion")
+        self.spotify_window.load_songs("Sơn Tùng")
         self.spotify_window.show()
-
-    def closeEvent(self, event):
-        reply = QMessageBox.question(self, 'Exit Confirmation', 'Are you sure you want to exit?', QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if reply == QMessageBox.Yes:
-            event.accept()
-        else:
-            event.ignore()
     
 if __name__ == "__main__":
     import sys

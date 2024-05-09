@@ -1,10 +1,8 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFileSystemModel, QTreeView, QVBoxLayout, QWidget, QPushButton, QInputDialog, QMessageBox
 from PyQt5.QtCore import QSortFilterProxyModel
 from PyQt5.QtGui import QIcon, QPixmap
-import sys
 import os
-import subprocess
-from PlayMedia import VideoPlayer
+from PlayMedia import MusicPlayer
 
 
 class MP3AndFoldersProxyModel(QSortFilterProxyModel):
@@ -114,10 +112,11 @@ class ManageSongWindow(QMainWindow):
     def open_file(self, index):
         source_index = self.proxy_model.mapToSource(index)
         file_path = self.model.filePath(source_index)
+        print(file_path)
         file_extension = os.path.splitext(file_path)[1].lower()
         if file_extension in ['.mp3']:
             try:
-                self.player = VideoPlayer(file_path)
+                self.player = MusicPlayer(file_path)
                 self.player.show()
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Unable to open file: {str(e)}")

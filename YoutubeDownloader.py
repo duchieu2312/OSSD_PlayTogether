@@ -84,34 +84,34 @@ class YoutubeWindow(QMainWindow):
             return
         video_url = current_url.toString()
 
-        # Chọn vị trí thư mục tải xuống
-        download_dir = QFileDialog.getExistingDirectory(self, "Selecte directory to save file")
+        try:
+            # Tìm các luồng tải xuống của video
+            yt = YouTube(video_url)
+            streams = yt.streams.filter(progressive=True, file_extension='mp4')
+            
+            # Trích xuất độ phân giải của từng luồng
+            resolutions = [f"{stream.resolution}" for stream in streams if stream.resolution is not None]
 
-        # Nếu người dùng đã chọn thư mục, thư mục sẽ được sử dụng để lưu trữ file
-        if download_dir:
-            try:
-                # Tìm các luồng tải xuống của video
-                yt = YouTube(video_url)
-                streams = yt.streams.filter(progressive=True, file_extension='mp4')
-                
-                # Trích xuất độ phân giải của từng luồng
-                resolutions = [f"{stream.resolution}" for stream in streams if stream.resolution is not None]
+            # Hiển thị hộp thoại lựa chọn độ phân giải
+            resolution, ok = QInputDialog.getItem(self, "Select Resolution", "Choose resolution:", resolutions, 0, False)
+            if not ok: return
 
-                # Hiển thị hộp thoại lựa chọn độ phân giải
-                resolution, ok = QInputDialog.getItem(self, "Select Resolution", "Choose resolution:", resolutions, 0, False)
-                if not ok: return
+            # Tìm luồng đã chọn
+            selected_stream = next(stream for stream in streams if  f"{stream.resolution}" == resolution)
+            
+            # Chọn vị trí thư mục tải xuống
+            download_dir = QFileDialog.getExistingDirectory(self, "Selecte directory to save file")
 
-                # Tìm luồng đã chọn
-                selected_stream = next(stream for stream in streams if  f"{stream.resolution}" == resolution)
-                
+            # Nếu người dùng đã chọn thư mục, thư mục sẽ được sử dụng để lưu trữ file
+            if download_dir:
                 # Tải về luồng đã chọn
                 selected_stream.download(output_path=download_dir)
                 QMessageBox.information(self, "Success", "Video downloaded successfully!")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to download video: {str(e)}")
-        else:
-            # Người dùng không chọn thư mục, không thực hiện tải về
-            QMessageBox.warning(self, "Warning", "You haven't selected a download directory!")
+            else:
+                # Người dùng không chọn thư mục, không thực hiện tải về
+                QMessageBox.warning(self, "Warning", "You haven't selected a download directory!")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to download video: {str(e)}")
 
     def open_manage(self):
         self.manage_window = ManageVideoWindow()

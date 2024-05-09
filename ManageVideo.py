@@ -1,9 +1,7 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QFileSystemModel, QTreeView, QVBoxLayout, QWidget, QPushButton, QInputDialog, QMessageBox
 from PyQt5.QtCore import QSortFilterProxyModel
 from PyQt5.QtGui import QIcon, QPixmap
-import sys
 import os
-import subprocess
 from PlayMedia import VideoPlayer
 
 

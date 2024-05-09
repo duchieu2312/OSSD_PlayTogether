@@ -142,7 +142,7 @@ class SpotifyWindow(QMainWindow):
                 self.track_list_widget.addItem(f"{idx+1}. {track_name} - {artist_name}")
         else:                
             self.track_list_widget.clear()  # Xóa danh sách bài hát cũ
-            self.load_songs("XXXTentacion")
+            self.load_songs("Sơn Tùng")
 
     def play_stop_track(self):
         if self.is_playing:  # Nếu bài hát đang phát thì ngưng nó
@@ -350,44 +350,45 @@ class SpotifyWindow(QMainWindow):
     def download_track(self):
         index = self.track_list_widget.currentRow()
         track_name, artist_name, preview_url = self.track_infos[index]
-        search_query = f"{track_name} - {artist_name}"
+        search_query = f"{track_name} - {artist_name} audio"
 
-        # Chọn vị trí thư mục tải xuống
-        download_dir = QFileDialog.getExistingDirectory(self, "Selecte directory to save file")
+        try:
+            # Tìm kiếm bài hát trên youtube và lấy video đầu tiên
+            search_results = Search(search_query)
+            first_video = search_results.results[0]
 
-        # Nếu người dùng đã chọn thư mục, thư mục sẽ được sử dụng để lưu trữ file
-        if download_dir:
-                try:
-                    # Tìm kiếm bài hát trên youtube và lấy video đầu tiên
-                    search_results = Search(search_query)
-                    first_video = search_results.results[0]
+            # Chỉ lấy những luồng chỉ có âm thanh
+            streams = first_video.streams.filter(only_audio=True)
 
-                    # Chỉ lấy những luồng chỉ có âm thanh
-                    streams = first_video.streams.filter(only_audio=True)
+            # Trích xuất chỉ số bitrate của mỗi luồng
+            bitrates = [f"{stream.abr}" for stream in streams]
 
-                    # Trích xuất chỉ số bitrate của mỗi luồng
-                    bitrates = [f"{stream.abr}" for stream in streams]
+            # Hiển thị hộp thoại lựa chọn bitrate
+            bitrates, ok = QInputDialog.getItem(self, "Bitrate", "Choose bitrate:", bitrates, 0, False)
+            if not ok: return
 
-                    # Hiển thị hộp thoại lựa chọn bitrate
-                    bitrates, ok = QInputDialog.getItem(self, "Bitrate", "Choose bitrate:", bitrates, 0, False)
-                    if not ok: return
+            # Tìm luồng đã chọn
+            selected_stream = next(stream for stream in streams if  f"{stream.abr}" == bitrates)
 
-                    # Tìm luồng đã chọn
-                    selected_stream = next(stream for stream in streams if  f"{stream.abr}" == bitrates)
+            # Chọn vị trí thư mục tải xuống
+            download_dir = QFileDialog.getExistingDirectory(self, "Selecte directory to save file")
+            
+            # Nếu người dùng đã chọn thư mục, thư mục sẽ được sử dụng để lưu trữ file
+            if download_dir:
 
-                    # Tải về luồng đã chọn
-                    out_file = selected_stream.download(output_path=download_dir)
+                # Tải về luồng đã chọn
+                out_file = selected_stream.download(output_path=download_dir)
 
-                    # Thay đổi định dạng từ mp4 thành mp3
-                    base, _ = os.path.splitext(out_file)
-                    new_file = base + '.mp3'
-                    os.rename(out_file, new_file)
-                    QMessageBox.information(self, "Information", f"'{track_name}' by '{artist_name}' has been successfully downloaded to your device!")
-                except Exception as e:
-                    QMessageBox.warning(self, "Warning", f"Unable to download '{track_name}' by '{artist_name}': {str(e)}")
-        else:
-            # Người dùng không chọn thư mục, không thực hiện tải về
-            QMessageBox.warning(self, "Warning", "You haven't selected a download directory!")
+                # Thay đổi định dạng từ mp4 thành mp3
+                base, _ = os.path.splitext(out_file)
+                new_file = base + '.mp3'
+                os.rename(out_file, new_file)
+                QMessageBox.information(self, "Information", f"'{track_name}' by '{artist_name}' has been successfully downloaded to your device!")
+            else:
+                # Người dùng không chọn thư mục, không thực hiện tải về
+                QMessageBox.warning(self, "Warning", "You haven't selected a download directory!")
+        except Exception as e:
+            QMessageBox.warning(self, "Warning", f"Unable to download '{track_name}' by '{artist_name}': {str(e)}")
 
     def open_manage(self):
         self.manage_window = ManageSongWindow()
