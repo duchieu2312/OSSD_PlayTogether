@@ -4,6 +4,8 @@ from PyQt5.QtGui import QIcon, QPixmap
 import sys
 import os
 import subprocess
+from PlayMedia import VideoPlayer
+
 
 class MP3AndFoldersProxyModel(QSortFilterProxyModel):
     def filterAcceptsRow(self, source_row, source_parent):
@@ -115,12 +117,8 @@ class ManageSongWindow(QMainWindow):
         file_extension = os.path.splitext(file_path)[1].lower()
         if file_extension in ['.mp3']:
             try:
-                if sys.platform.startswith('win'):
-                    os.startfile(file_path)
-                elif sys.platform.startswith('linux'):
-                    subprocess.Popen(['xdg-open', file_path])
-                elif sys.platform.startswith('darwin'):
-                    subprocess.Popen(['open', file_path])
+                self.player = VideoPlayer(file_path)
+                self.player.show()
             except Exception as e:
                 QMessageBox.warning(self, "Error", f"Unable to open file: {str(e)}")
         else:
