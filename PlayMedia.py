@@ -13,7 +13,7 @@ class VideoPlayer(QWidget):
         icon = QIcon()
         icon.addPixmap(QPixmap("images/Logo.jpg"), QIcon.Normal, QIcon.Off)
         self.setWindowIcon(icon)
-        self.showMaximized()
+        
         
 
         # Tạo giao diện
@@ -24,20 +24,27 @@ class VideoPlayer(QWidget):
         self.mediaPlayer = QMediaPlayer(None, QMediaPlayer.VideoSurface)
 
         videowidget = QVideoWidget()
+        videowidget.setFixedSize(800, 550)
 
         self.playBtn = QPushButton()
         self.playBtn.setEnabled(False)
         self.playBtn.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.playBtn.setFixedWidth(50)
         self.playBtn.clicked.connect(self.play_video)
+        self.playBtn.setFixedHeight(20)
+        
         
         self.volumeLabel = QLabel("Volume:")
         self.volumeLabel.setFixedWidth(55)
+        self.volumeLabel.setFixedHeight(10)
+
 
         self.volumeSlider = QSlider(Qt.Horizontal)
         self.volumeSlider.setRange(0, 100)
         self.volumeSlider.setValue(100)
         self.volumeSlider.setFixedWidth(150)
+        self.volumeSlider.setFixedHeight(10)
+
         self.volumeSlider.sliderMoved.connect(self.set_volume)
 
         ButtonsLayout = QHBoxLayout()
@@ -47,8 +54,12 @@ class VideoPlayer(QWidget):
         ButtonsLayout.setAlignment(Qt.AlignCenter)
 
         self.currentTimeLabel = QLabel()
+        self.currentTimeLabel.setFixedHeight(10)
+
         self.spaceLabel = QLabel("/")
         self.totalTimeLabel = QLabel()
+        self.totalTimeLabel.setFixedHeight(10)
+
 
         TimeLayout = QHBoxLayout()
         TimeLayout.addWidget(self.currentTimeLabel)
@@ -59,6 +70,8 @@ class VideoPlayer(QWidget):
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setRange(0,0)
         self.slider.sliderMoved.connect(self.set_position)
+        self.slider.setFixedHeight(10)
+
 
         self.openBtn = QPushButton('Open Video')
         self.openBtn.clicked.connect(self.open_file)
